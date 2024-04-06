@@ -1,0 +1,177 @@
+---
+title: "Client Report - Project 3"
+subtitle: "Course DS 250"
+author: "Colin Israelsen"
+format:
+  html:
+    self-contained: true
+    page-layout: full
+    title-block-banner: true
+    toc: true
+    toc-depth: 3
+    toc-location: body
+    number-sections: false
+    html-math-method: katex
+    code-fold: true
+    code-summary: "Show the code"
+    code-overflow: wrap
+    code-copy: hover
+    code-tools:
+        source: false
+        toggle: true
+        caption: See code
+execute: 
+  warning: false
+    
+---
+
+```{python}
+#| label: libraries
+#| include: false
+import pandas as pd
+import numpy as np
+import plotly.express as px
+import sqlite3 as sql3
+```
+
+
+
+```{python}
+
+# Include and execute your code here
+conn = sql3.connect('lahmansbaseballdb.sqlite')
+
+query = "SELECT name FROM sqlite_master WHERE type='table';"
+
+# Execute the query and fetch all tables
+tables = pd.read_sql_query(query, conn)
+```
+
+__Highlight the Questions and Tasks__
+
+## QUESTION|TASK 1
+
+__Write an SQL query to create a new dataframe about baseball players who attended BYU-Idaho. The new table should contain five columns: playerID, schoolID, salary, and the yearID/teamID associated with each salary. Order the table by salary (highest to lowest) and print out the table in your report.__
+
+
+```{python}
+query = '''
+SELECT s.playerID, s.schoolID, salaries.salary, salaries.yearID, salaries.teamID
+FROM collegeplaying AS s
+JOIN salaries ON s.playerID = salaries.playerID
+WHERE s.schoolID = 'idbyuid'
+ORDER BY salaries.salary DESC
+'''
+
+# run query and store in data frame
+df = pd.read_sql_query(query, conn)
+
+df.head()
+```
+
+_At first I forgot that the schoolID for BYUI was 'idbyuid' and not 'byui' so my code didn't initially work until I made that change. One thing I noticed is that even with the table only displaying the top 5 results, the salary range is pretty big going from $4 million to $2.8 million in just 5 results. It is over the course of multiple years so maybe inflation is a cause of that. Also it's interesting that the results for all 5 are all from the same player._
+
+
+
+## QUESTION|TASK 2
+
+__This three-part question requires you to calculate batting average (number of hits divided by the number of at-bats)__
+
+__Write an SQL query that provides playerID, yearID, and batting average for players with at least 1 at bat that year. Sort the table from highest batting average to lowest, and then by playerid alphabetically. Show the top 5 results in your report.__
+
+_This question didn't take as much time as I thought. Since it had 3 parts to it I thought it would take a while, but it went by rather quickly since it is just modifying the existing code from the parts before._
+
+```{python}
+# batting average for players with at least 1 at bat that year
+query2a = '''
+SELECT playerID, yearID, CAST(H AS FLOAT) / AB AS batting_average
+FROM Batting
+WHERE AB >= 1
+ORDER BY batting_average DESC, playerID ASC
+LIMIT 5;
+'''
+
+# Execute the query and fetch the results
+result2a = pd.read_sql(query2a, conn)
+
+result2a
+
+```
+
+_The results for this part of the question are more diverse than the question before. I liked seeing that all the players are differnt for the results because it shows the diversity amongst the players on the teams. Although I was hoping to see more diversity in the actual batting averages themselves. Even though it's differnt players, all the batting averages are the same equal to 1._
+
+__Use the same query as above, but only include players with at least 10 at bats that year. Print the top 5 results.__
+
+```{python}
+# batting average including number of players with at least 10 at bats that year
+query2b = '''
+SELECT playerID, yearID, CAST(H AS FLOAT) / AB AS batting_average
+FROM Batting
+WHERE AB >= 10
+ORDER BY batting_average DESC, playerID ASC
+LIMIT 5;
+'''
+
+# Execute the query and fetch the results
+result2b = pd.read_sql(query2b, conn)
+
+result2b
+
+```
+
+_The code for this part of question 2 was rather easy, all I had to do was change the WHERE clause to be greater than or equal to 10 to filter the data for the question. Something I noticed was that the players on this list compared to the list prior in part 2a are completely different players. I guess as you get more specific with filtering with different values you get different players in the list. Also, all batting averages are below 0, which is normal for baseball nowadays. Although I was surprised to see that a player form 2013 had a lower batting average than a player in 1974, I would've expected the 2013 player to have a higher average since players evolve and get better at the game over time._
+
+__Now calculate the batting average for players over their entire careers (all years combined). Only include players with at least 100 at bats, and print the top 5 results.__
+
+
+
+```{python}
+query2c = '''
+SELECT playerID, CAST(SUM(H) AS FLOAT) / SUM(AB) AS career_batting_average
+FROM Batting
+GROUP BY playerID
+HAVING SUM(AB) >= 100
+ORDER BY career_batting_average DESC
+LIMIT 5;
+'''
+
+# Execute the query and fetch the results
+result2c = pd.read_sql(query2c, conn)
+
+result2c
+```
+
+_This last part of question 2 is the most realistic to today. All batting averages for the career are above 0.3 but below 0.4 which is what you would find as a relatively normal batting average for baseball players. As you get more specific with filtering the data over different time intervals or how many at bats, the numbers change a lot because there are more/less hits that get calculated. Also, I noticed again with this list that all the players are different from the last list produced._
+
+## QUESTION|TASK 3
+
+__Pick any two baseball teams and compare them using a metric of your choice (average salary, home runs, number of wins, etc). Write an SQL query to get the data you need, then make a graph using Plotly Express to visualize the comparison. What do you learn?__
+
+
+```{python}
+# compare home runs over time for PHI vs ATL
+query = '''
+SELECT teamID, yearID, SUM(HR) as home_runs
+FROM teams
+WHERE teamID IN ('PHI', 'ATL')
+GROUP BY teamID, yearID
+ORDER BY yearID;
+'''
+
+# Execute the query and fetch the results
+home_runs = pd.read_sql(query, conn)
+```
+
+_The code above this statement is the code for extracting the data from the sql tables to produce the graph. The code below is to actually produce the graph with the data found._
+
+```{python}
+# create and show the graph of info from the query above
+fig = px.line(home_runs, x='yearID', y='home_runs', color='teamID', 
+              title='Comparison of Home Runs Over Time: PHI vs ATL',
+              labels={'yearID': 'Year', 'home_runs': 'Home Runs', 'teamID': 'Team'})
+
+fig.show()
+```
+
+
+_For the graph I decided to compare the teams from Philidelphia and Atlanta. For the data to compare I chose to include the amount of home runs over time. I was shocked with the graph that was produced because there is a lot more data over time from the Philidelphia team even though these teams were formed in the MLB only 12 years apart from each other. I guess the database we used had a lot of missing data for the Atlanta team. The biggest thing I noticed and learned what that the team for Atlanta has a much wider range of high and low amounts of home runs over time. Philidelphia doesn't drop or rise too much compared to Atlanta. Also, at the end of the graph the team form Atlanta ends up having more home runs than Philidelplhia._
