@@ -1,0 +1,172 @@
+---
+title: "Client Report - Project 2"
+subtitle: "Course DS 250"
+author: "Colin Israelsen"
+format:
+  html:
+    self-contained: true
+    page-layout: full
+    title-block-banner: true
+    toc: true
+    toc-depth: 3
+    toc-location: body
+    number-sections: false
+    html-math-method: katex
+    code-fold: true
+    code-summary: "Show the code"
+    code-overflow: wrap
+    code-copy: hover
+    code-tools:
+        source: false
+        toggle: true
+        caption: See code
+execute: 
+  warning: false
+    
+---
+
+```{python}
+#| label: libraries
+#| include: false
+import pandas as pd
+import numpy as np
+import plotly.express as px
+```
+
+
+```{python}
+### read in the data
+
+df = pd.read_json("/Users/Colin/Library/Mobile Documents/com~apple~CloudDocs/Python Files/Data Science Programming/Project2/flights_missing.json")
+
+```
+
+__Highlight the Questions and Tasks__
+
+## QUESTION|TASK 1
+
+__Fix all of the varied missing data types in the data to be consistent (all missing values should be displayed as “NaN”)__
+
+_In the beginning it was a bit difficult to figure out the code to be able to replace everything. I knew about the replace() function but originally I didn't know if you could use it across a whole data set or just one column._
+
+```{python}
+#| label: Q1
+# Replace varied missing data types with np.nan
+df.replace(['n/a', 'NA', None, '', 'null'], 'NaN', inplace=True)
+
+# Select one record with at least one NaN value for demonstration
+example_record = df[df.isnull().any(axis=1)].iloc[0].to_json()
+
+print('Example record with NaN:', example_record)
+
+```
+
+_I ended up using the replace function for this first problem. I did it for any variable that denotes a missing data type like n/a, NA, None, an empty space, and null. Any spaces with any of those types should have been replaced with NaN._
+
+
+
+## QUESTION|TASK 2
+
+__Which airport has the worst delays?__
+
+_The metric that I chose to measure for this question was the delay time in hours. This is more relateable to passengers because flight times are always in hours, not minutes. Also most times when a flight is delayed due to weather or anything else, it is delayed for multiple hours, not just a few minutes._
+
+```{python}
+# Convert delay numbers to numeric
+df['num_of_delays_total'] = pd.to_numeric(df['num_of_delays_total'], errors='coerce')
+df['minutes_delayed_total'] = pd.to_numeric(df['minutes_delayed_total'], errors='coerce')
+
+```
+
+
+```{python}
+# Calculate total flights, total delayed flights, proportion of delayed flights, and average delay time in hours
+flights_summary = df.groupby('airport_name').agg(
+    total_flights=pd.NamedAgg(column='num_of_flights_total', aggfunc='sum'),
+    total_delayed_flights=pd.NamedAgg(column='num_of_delays_total', aggfunc='sum'),
+    average_delay_time_hours=pd.NamedAgg(column='minutes_delayed_total', aggfunc='mean')
+)
+flights_summary['average_delay_time_hours'] /= 60 # Convert minutes to hours
+flights_summary['proportion_of_delayed_flights'] = flights_summary['total_delayed_flights'] / flights_summary['total_flights']
+```
+
+
+```{python}
+# Sort by average delay time in hours to find the worst airport
+flights_summary.sort_values(by='average_delay_time_hours', ascending=False, inplace=True)
+
+flights_summary.head()
+
+```
+
+_By looking at the information above, you can see that the airport in Atlanta, GA has the highest number of delayed flights, but Chicago has the highest average delay time hours. Although, San Fransisco has the highest proportion of delayed flights which means they have the most delays for how many total flights they had._
+
+## QUESTION|TASK 3
+
+__What is the best month to fly if you want to avoid delays of any length?__
+
+_The metric I chose to measure was the average number of delays per month. This metric calculates all the delays in the given months and shows on average which month would not be best to fly in regardless if you get one of the worst or one of the best delays. _
+
+```{python}
+# Map month names back to numbers for plotting
+month_numbers = {'January': 1, 'February': 2, 'March': 3, 'April': 4, 'May': 5, 'June': 6, 'July': 7, 'August': 8, 'September': 9, 'October': 10, 'November': 11, 'December': 12}
+df['month'] = df['month'].map(month_numbers)
+
+# Convert delay numbers to numeric
+df['num_of_delays_total'] = pd.to_numeric(df['num_of_delays_total'], errors='coerce')
+
+# Group by month and calculate the average number of delays
+monthly_delays = df.groupby('month')['num_of_delays_total'].mean().reset_index()
+
+# Plot using Plotly Express
+fig = px.bar(monthly_delays, x='month', y='num_of_delays_total', labels={'month': 'Month', 'num_of_delays_total': 'Average Number of Delays'}, title='Average Number of Delays by Month')
+fig.update_xaxes(type='category', categoryorder='array', categoryarray=[1,2,3,4,5,6,7,8,9,10,11,12], ticktext=['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'], tickvals=[1,2,3,4,5,6,7,8,9,10,11,12])
+fig.show()
+
+```
+
+_From this data the answer to the question is easy, February would be the best month to fly in to avoid any delays. In the graph you notice that February has no delays for the month. However, if someone cannot or is not available to fly in february, I would recommend November since it is the 2nd lowest month according to the average number of delays._
+
+
+## QUESTION|TASK 4
+
+__Your job is to create a new column that calculates the total number of flights delayed by weather (both severe and mild)__
+
+_Below is the first 5 rows of the data computed with flights delayed by weather. The airports listed are ATL, DEN, IAD, ORD, and SAN. _
+
+```{python}
+# Replace missing values in the Late Aircraft variable with the mean
+df['num_of_delays_late_aircraft'] = df['num_of_delays_late_aircraft'].replace(np.nan, df['num_of_delays_late_aircraft'].mean())
+
+# Calculate total weather delays
+df['total_weather_delays'] = df['num_of_delays_weather'] + 0.3 * df['num_of_delays_late_aircraft']
+df.loc[df['month'].between(4, 8), 'total_weather_delays'] += 0.4 * df['num_of_delays_nas']
+df.loc[~df['month'].between(4, 8), 'total_weather_delays'] += 0.65 * df['num_of_delays_nas']
+
+# Show the first 5 rows of the updated dataframe
+df.head()
+```
+
+_From the data calculated I noticed that Chicago's O'hare airport has the highest number of delays due to weather with 4502 delays. Atlanta was close coming in 2nd with 3137 delays due to weather. I also noticed that Chicago had the highest number of minutes delayed for all flights and Atlanta had the highest number of minutes delayed due to weather._
+
+
+## QUESTION|TASK 5
+
+__Using the new weather variable calculated above, create a barplot showing the proportion of all flights that are delayed by weather at each airport. Discuss what you learn from this graph.__
+
+
+```{python}
+# Calculate the proportion of all flights that are delayed by weather at each airport
+df['weather_delay_proportion'] = df['total_weather_delays'] / df['num_of_flights_total']
+
+# group data by airport
+airport_weather_delays = df.groupby('airport_name')['weather_delay_proportion'].mean().reset_index()
+
+# Create the barplot of the data
+fig = px.bar(airport_weather_delays, x='airport_name', y='weather_delay_proportion', title='Proportion of All Flights Delayed by Weather at Each Airport', labels={'weather_delay_proportion':'Weather Delay Proportion', 'airport_name':'Airport Name'})
+fig.update_layout(xaxis={'categoryorder':'total descending'})
+fig.show()
+```
+
+_From the barplot we learn that the airport with the highest proportion of flights delayed by weather is San Fransisco airport. Although from the other questions answered in this project, it is not surprising to see Chicago O'hare in 2nd and Atlanta, GA in 3rd. If you're traveling and dont want to get delayed by weather, Salt Lake City would be the best choice because it has the lowest proportion of flight delays by weather. _
+

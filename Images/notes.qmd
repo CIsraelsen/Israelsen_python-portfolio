@@ -1,0 +1,19 @@
+```{python}
+import pandas as pd
+
+# Load the JSON file
+flights = pd.read_json('flights_missing.json')
+
+# Count the number of records with 'n/a' in the 'month' column
+na_count = flights[flights['month'] == 'n/a'].shape[0]
+
+print('Number of records with n/a in month:', na_count)
+```
+
+```{python}
+# Find the column with exactly 23 missing values
+missing_values_count = flights.isnull().sum()
+column_with_23_missing = missing_values_count[missing_values_count == 23].index.tolist()
+
+print('Column with 23 missing values:', column_with_23_missing)
+```
