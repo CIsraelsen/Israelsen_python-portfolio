@@ -1,5 +1,5 @@
 ---
-title: "Client Report - [Project0]"
+title: "Client Report - [Project01]"
 subtitle: "Course DS 250"
 author: "Colin Israelsen"
 format:
@@ -26,63 +26,115 @@ execute:
 ---
 
 ```{python}
-## import necessary libraries for the following code
-import numpy as np
+#| label: libraries
+#| include: false
 import pandas as pd
+import numpy as np
 import plotly.express as px
 ```
 
 
 ## Elevator pitch
 
-_paste your elevator pitch here_
-_A SHORT (4-5 SENTENCES) PARAGRAPH THAT `DESCRIBES KEY INSIGHTS` TAKEN FROM METRICS IN THE PROJECT RESULTS THINK TOP OR MOST IMPORTANT RESULTS._
+_Throughout this project I learned a lot on filtering the dataset to include what kind of data you want to portray. I got more practice as well with filtering out for specific names during different time periods which was also really helpful. The last biggest takeaway for me was being able to change the color of lines to make changes more noticeable, and also adding vertical lines to the graphs in certain locations to add emphasize on my findings for the differences I wanted to point out._
 
 ```{python}
-## code to read in teh csv file with the data needed
 
-df = pd.read_csv("/Users/Colin/Library/Mobile Documents/com~apple~CloudDocs/Python Files/Data Science Programming/mpg.csv")
+# Load the data
+df = pd.read_csv('names_year.csv')
+
+# Filter the data for the name 'Colin'
+colin_df = df.query('name == "Colin"')
+
 ```
 
 __Highlight the Questions and Tasks__
 
 ## QUESTION|TASK 1
 
-__Finish the readings and be prepared with any questions to get your environment working smoothly (class for on-campus and slack for online)|TASK 1__
+__How does your name at your birth year compare to its use historically?__
 
-Activity: Done
+_My name was used a lot at the time of my birth compared to about the 40-50 years prior. Although, the usage of my name spiked up around the year 2003-2004 so it was a lot more common. There is a red dotted line on the graph indicating when I was born._
+
+
+```{python}
+# Using Plotly Express to create the chart
+fig = px.line(colin_df, x='year', y='Total', title='Historical Usage of the Name "Colin"', labels={'Total': 'Number of Times the Name "Colin" is Used'})
+fig.add_vline(x=2000, line_dash='dash', line_color='red')
+
+fig.show()
+
+```
 
 
 
 ## QUESTION|TASK 2
 
-__In VS Code, write a python script to create the example chart from section 3.2.2 of the textbook (part of the assigned readings). Note that you will be using plotly Express to display the chart instead of Altair which is used in the book.|TASK 2__
+__If you talked to someone named Brittany on the phone, what is your guess of his or her age? What ages would you not guess?__
 
-_type your results and analysis here_
+_If I talked to someone on the phone named Brittany, I would assume they were in the age range of 20-40 years old. This age range would put them somewhere in the rise of the name usage of being born between 1983 and 2003. Before and after those years the name was used hardly at all._
+
+
 
 ```{python}
 
-## code to make the scatterplot with hwy and displ
-fig = px.scatter(df, x='displ', y='hwy', title='Hwy vs Dsply comparison')
+# Filter the data for the name Brittany
+brittany_df = df.query('name == "Brittany"')
+
+# show chart
+fig = px.line(brittany_df, x='year', y='Total', title='Historical Usage of the Name "Brittany"', labels={'Total': 'Number of Times the Name "Brittany" is Used'})
+
 fig.show()
 
 ```
-
-_include figures in chunks and discuss your findings in the figure._
 
 
 
 ## QUESTION|TASK 3
 
-__Your final report should also include the markdown table created from the following (assuming you have mpg from question 2)|TASK 3__
+__Mary, Martha, Peter, and Paul are all Christian names. From 1920 - 2000, compare the name usage of each of the four names. What trends do you notice?__
 
-_Below is the markdown table created to show the following information_
+_From the graph we see that each of the 4 christian names were used quite a bit in the 1950s mostly. The name Mary was used a lot more than the other 3 names having 25k and 40k more uses at it's peak usage in the 50s. Although, all the names were starting to be used a lot less from the 1960s until 2000, they all had a decline in usage during those 40 years._
 
 ```{python}
-## code to create the markdown table
 
-print(df.head(5).filter(["manufacturer", "model","year", "hwy"]).to_markdown(index=False))
+# Filter the data for the name Brittany
+christian_names_df = df[df['name'].isin(['Mary', 'Martha', 'Peter', 'Paul'])]
 
+# show chart
+# filter the data to include only the years 1920-2000
+christian_names_df = christian_names_df[(christian_names_df['year'] >= 1920) & (christian_names_df['year'] <= 2000)]
+
+# graph the visual to show the names usages
+fig = px.line(christian_names_df, x='year', y='Total', title='Christian Names Usage', labels={'Total': 'Number of Times Each Name is Used'}, color="name")
+
+fig.show()
+
+```
+
+
+
+## QUESTION|TASK 4
+
+__Think of a unique name from a famous movie. Plot the usage of that name and see how changes line up with the movie release. Does it look like the movie had an effect on usage?__
+
+_I wanted to see if the name "Jason" was used more after the movie "The Bourne Identity" was released in 2002. Turns out when I filtered the data and graphed it, there was a spike in the name Jason in the 1970s, but that was not when the movie was released. Some other reason that I don't know caused the name to be used more during that time. But as for when the movie was released in 2002, there was not change or increase in the use of the name Jason._
+
+```{python}
+
+# filter the dataset to only include the name James
+jason_df = df.query('name == "Jason"')
+
+# filter the data again to only include usage after 1960 so see trends better
+jason_df = jason_df[(jason_df['year'] >= 1960)]
+
+# graph the data
+fig = px.line(jason_df, x='year', y='Total', title='Was the Name "Jason" used more when "The Bourne Identity" got Released in 2002?', labels={'Total': 'Number of Times the Name "Jason" is Used'})
+
+# add a red line to show when the movie was released
+fig.add_vline(x=2002, line_dash='dash', line_color='red')
+
+fig.show()
 ```
 
 
