@@ -1,0 +1,176 @@
+---
+title: "Client Report - Project 5"
+subtitle: "Course DS 250"
+author: "Colin Israelsen"
+format:
+  html:
+    self-contained: true
+    page-layout: full
+    title-block-banner: true
+    toc: true
+    toc-depth: 3
+    toc-location: body
+    number-sections: false
+    html-math-method: katex
+    code-fold: true
+    code-summary: "Show the code"
+    code-overflow: wrap
+    code-copy: hover
+    code-tools:
+        source: false
+        toggle: true
+        caption: See code
+execute: 
+  warning: false
+    
+---
+
+```{python}
+
+import pandas as pd
+import numpy as np
+import plotly.express as px
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
+from sklearn.linear_model import LogisticRegression
+```
+
+
+## Elevator pitch
+
+_One of the biggest takeaways from this project was getting to wrangle and format the data in alot of different ways. While doing this project I got to take all the ranges and change them to classify them as numbers, and also drop the former columns from the data frame since they were no longer needed. I also got practice with changing all the column names of this dataset so that they were shorter. I learned from this that future steps of organizing and calculating answers from the data was a lot easier with shorter column names._
+
+```{python}
+df = pd.read_csv('StarWars.csv', delimiter=',', encoding='ISO-8859-1')
+```
+
+__Highlight the Questions and Tasks__
+
+## QUESTION|TASK 1
+
+__Shorten the column names and clean them up for easier use with pandas. Provide a table or list that exemplifies how you fixed the names.__
+
+_type your results and analysis here_
+
+```{python}
+# Renaming columns 
+df.columns = ['RespondentID', 'Seen_SW', 'Fan_SW', 'Seen_SW_EP1', 'Seen_SW_EP2', 'Seen_SW_EP3', 'Seen_SW_EP4', 'Seen_SW_EP5', 'Seen_SW_EP6', 'Rank_SW_EP1', 'Rank_SW_EP2', 'Rank_SW_EP3', 'Rank_SW_EP4', 'Rank_SW_EP5', 'Rank_SW_EP6','View_Han_Solo', 'View_Luke', 'View_Leia', 'View_Anakin', 'View_Obi_Wan', 'View_Emperor_Palpatine', 'View_Darth_Vader', 'View_Lando', 'View_Boba', 'View_C3PO', 'View_R2D2', 'View_JarJar', 'View_Padme', 'View_Yoda', 'Shot_First', 'Expansion_SW', 'Fan_of_Expansion', 'Fan_ST', 'Gender', 'Age', 'Income', 'Education', 'Region']
+
+```
+
+_include figures in chunks and discuss your findings in the figure._
+
+```{python}
+print(df.columns)
+```
+
+
+## QUESTION|TASK 2
+
+__Clean and format the data so that it can be used in a machine learning model. As you format the data, you should complete each item listed below. In your final report provide example(s) of the reformatted data with a short description of the changes made.__
+
+__Filter the dataset to respondents that have seen at least one film.__
+
+_The code below filters the dataset so that it only includes individuals that have seen at least one star wars film_
+
+```{python}
+df = df[df['Seen_SW'] == 'Yes']
+```
+
+__Create a new column that converts the age ranges to a single number. Drop the age range categorical column.__
+
+_The code below changes the age ranges to actual numbers in a new column and drops the other "Age" column from the dataset_
+
+```{python}
+# convert age ranges to numbers
+age_range = {'18-29': 1, '30-44': 2, '45-60': 3, '> 60': 4}
+df['AGE_NEW'] = df['Age'].map(age_range)
+df.drop('Age', axis=1, inplace=True)
+
+```
+
+__Create a new column that converts the education groupings to a single number. Drop the school categorical column__
+
+_The code below changes education levels to actual numbers to represent them in a new column in the dataset. The old education column is then deleted from the dataset._
+
+```{python}
+# convert education levels to numbers
+education_level = {'Less than high school degree': 1, 'High school degree': 2, 'Some college or Associate degree': 3, 'Bachelor degree': 4, 'Graduate degree': 5}
+df['EDUCATION_NEW'] = df['Education'].map(education_level)
+df.drop('Education', axis=1, inplace=True)
+```
+
+__Create a new column that converts the income ranges to a single number. Drop the income range categorical column.__
+
+_The code below changes the income ranges to actual numbers that represent those ranges in the dataset in a new column. The old income range columns is then deleted._
+
+```{python}
+# convert income ranges to numbers
+income_level = {'$0 - $24,999': 1, '$25,000 - $49,999': 2, '$50,000 - $99,999': 3, '$100,000 - $149,999': 4, '$150,000+': 5}
+df['INCOME_NEW'] = df['Income'].map(income_level)
+df.drop('Income', axis=1, inplace=True)
+```
+
+__Create your target (also known as “y” or “label”) column based on the new income range column.__
+
+_The code below creates a "Target" column in the dataset based on the new income range column._
+
+```{python}
+# create target column
+df['Target'] = df['INCOME_NEW'].apply(lambda x: 1 if x >= 3 else 0)
+```
+
+```{python}
+# shows the first 5 rows of the new dataset
+print(df.head())
+```
+
+__One-hot encode all remaining categorical columns.__
+
+_The code below One-hot encodes all remaining categorical columns._
+
+```{python}
+# one hot encode remaining categorical columns
+df = pd.get_dummies(df, columns=["Gender", "Region"], drop_first=True)
+```
+
+```{python}
+# shows the first 5 rows of the new dataset
+print(df.head())
+```
+
+## QUESTION|TASK 3
+
+__Validate that the data provided on GitHub lines up with the article by recreating 2 of the visuals from the article.__
+
+
+
+## QUESTION|TASK 4
+
+__Build a machine learning model that predicts whether a person makes more than $50k. Describe your model and report the accuracy.__
+
+_Below is the code for the supposed machine learning model. Honestly, I dont know why it isnt working, I thought I did it correctly._
+
+```{python}
+# Features and target variable
+# X = df.drop(columns=['RespondentID', 'Target'])
+# y = df['Target']
+
+# Train-test split
+# X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Logistic Regression model
+# model = LogisticRegression()
+# model.fit(X_train, y_train)
+
+# Predictions
+# y_pred = model.predict(X_test)
+
+# Model evaluation
+# accuracy = accuracy_score(y_test, y_pred)
+# print("Accuracy of the model:", accuracy)
+
+```
+
+
